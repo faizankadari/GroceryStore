@@ -9,7 +9,7 @@ import lombok.Data;
 
 @Entity
 
-@Table(name="store_items")
+@Table(name="grocerystore_items")
 @Data
 public class GroceryItem {
 
