@@ -34,26 +34,26 @@ public class AdminController {
 
 	@Autowired
 	private OrderService orderService;
-	
+
 	@GetMapping("/grocery-items")
 	@PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
 	public ResponseEntity<List<GroceryItem>> getAllGroceryItems() {
 		log.info("Received request to fetch all grocery items");
-		
+
 		List<GroceryItem> items = groceryItemService.getAllGroceryItems();
 		log.info("Request executed successfully", items.size());
-		
+
 		return new ResponseEntity<>(items, HttpStatus.OK);
 	}
 
 	@PostMapping("/grocery-items")
 	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<String> addGroceryItem(@RequestBody GroceryItem groceryItem) {
-		
-		log.info("Adding new grocery item: {}"+ groceryItem);
-        groceryItemService.addGroceryItem(groceryItem);
-        log.info("Grocery item added successfully");
-        return new ResponseEntity<>("Item Added", HttpStatus.OK);
+
+		log.info("Adding new grocery item: {}" + groceryItem);
+		groceryItemService.addGroceryItem(groceryItem);
+		log.info("Grocery item added successfully");
+		return new ResponseEntity<>("Item Added", HttpStatus.OK);
 	}
 
 	@DeleteMapping("/grocery-items/{id}")
@@ -86,11 +86,27 @@ public class AdminController {
 		order.setOrderDate(new Date());
 		orderService.addOrder(order);
 
+		boolean allItemsProcessed = true;
+
 		for (OrderItem item : orderItems) {
 			item.setOrder(order);
-			orderService.addOrderItem(item);
+
+			if (item.getGroceryItem() == null) {
+				allItemsProcessed = false;
+			} else {
+				if (!orderService.addOrderItem(item)) {
+					allItemsProcessed = false;
+				}
+			}
 		}
 
-		return new ResponseEntity<>("Order Completed Successfully", HttpStatus.CREATED);
+		if (allItemsProcessed) {
+			log.info("Order completed successfully");
+			return new ResponseEntity<>("Order Completed Successfully", HttpStatus.CREATED);
+		} else {
+			log.info("Order failed due to insufficient quantity or missing items");
+			return new ResponseEntity<>("Requested Quantity is more than available", HttpStatus.ACCEPTED);
+		}
 	}
+
 }
